@@ -1,0 +1,5 @@
+.air.toml
+tmp/main.exe
+tmp/build-errors.log
+posts/test.txt
+posts/test.cpp
