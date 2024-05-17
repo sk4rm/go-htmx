@@ -1,40 +1,43 @@
-<head>
-    <script src="https://unpkg.com/htmx.org@1.9.12" integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyRjrOnlCoYta87iKBWq3EsdM2" crossorigin="anonymous"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body {
-            font-family: Geist, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            
-            padding-top: 15em;
-            padding-left: 30%;
-            padding-right: 30%;
-        }
+{{ define "style" }}
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 
-        form {
-            display: flex;
-            flex-direction: column;
-            row-gap: 1em;
-        }
+        padding-top: 15em;
+        padding-left: 30%;
+        padding-right: 30%;
+    }
 
-        textarea {
-            /* https://stackoverflow.com/questions/271067/how-can-i-make-a-textarea-100-width-without-overflowing-when-padding-is-present */
-            box-sizing: border-box;
-            resize: vertical;
-            width: 100%;
-        }
+    form {
+        display: flex;
+        flex-direction: column;
+        row-gap: 1em;
+    }
 
-        input[type="submit"] {
-            font-weight: bold;
-            max-width: 4em;
-        }
-    </style>
-</head>
+    textarea {
+        /* https://stackoverflow.com/questions/271067/how-can-i-make-a-textarea-100-width-without-overflowing-when-padding-is-present */
+        box-sizing: border-box;
+        resize: vertical;
+        width: 100%;
+    }
 
-<body>
-    <h3>new post</h3>
-    <form hx-post="/posts/" method="post">
-        <div><textarea name="title" rows="1" required></textarea></div>
-        <div><textarea name="body" rows="5" required></textarea></div>
-        <input type="submit" value="save">
-    </form>
-</body>
+    input:user-invalid + span::before {
+        content: " no leading or trailing whitespace pls ";
+    }
+
+    input[type="submit"] {
+        font-weight: bold;
+        max-width: 4em;
+    }
+</style>
+{{ end }}
+
+{{ define "body" }}
+<h3>new post</h3>
+<form hx-post="/posts/" method="post">
+    <!-- https://stackoverflow.com/questions/38934328/regex-match-a-string-without-leading-and-trailing-spaces -->
+    <div><input name="title" placeholder="title" pattern="^\w+(?: +\w+)*$" required></input><span></span></div>
+    <div><textarea name="body" placeholder="something to share" rows="5" required></textarea></div>
+    <input type="submit" value="save">
+</form>
+{{ end }}
