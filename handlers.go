@@ -1,20 +1,17 @@
 package main
 
 import (
-	"context"
+	"database/sql"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
-
-	"github.com/jackc/pgx/v5"
 )
 
 func check(err error) {
 	if err != nil {
-		log.Fatalln(err)
+		log.Panic(err)
 	}
 }
 
@@ -27,15 +24,11 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 	title := r.PostFormValue("title")
 	body := r.PostFormValue("body")
 
-	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
-	check(err)
-	defer conn.Close(context.Background())
-
-	query := "INSERT INTO public.posts (title, body) VALUES ($1::text, $2::text) returning id;"
+	query := "INSERT INTO posts (title, body) VALUES ($1::text, $2::text) returning id;"
 	var postID string
 
 	// Create new record in database.
-	err = conn.QueryRow(context.Background(), query, title, body).Scan(&postID)
+	err := db.QueryRow(query, title, body).Scan(&postID)
 	check(err)
 
 	log.Printf("created post #%s\n", postID)
@@ -57,14 +50,11 @@ func viewPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
-	check(err)
-
-	query := "SELECT * FROM posts WHERE id=$1"
+	query := "SELECT id, title, body FROM posts WHERE id=$1"
 	var postID, title, body string
-	err = conn.QueryRow(context.Background(), query, id).Scan(&postID, &title, &body)
+	err = db.QueryRow(query, id).Scan(&postID, &title, &body)
 
-	if err == pgx.ErrNoRows {
+	if err == sql.ErrNoRows {
 		fmt.Fprintln(w, "no post with id "+id)
 	} else {
 		check(err)
@@ -76,7 +66,7 @@ func viewPostHandler(w http.ResponseWriter, r *http.Request) {
 //
 // Displays frontend for creating new posts.
 func newPostHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("GET /posts/new/")
+	log.Println("GET /posts/new")
 
 	tmpl, err := template.ParseFiles("templates/base.html", "templates/new-post.html")
 	if err != nil {
@@ -95,21 +85,15 @@ func newPostHandler(w http.ResponseWriter, r *http.Request) {
 func viewAllPostsHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("GET /posts/")
 
-	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	rows, err := db.Query("SELECT * FROM posts")
 	check(err)
-	defer conn.Close(context.Background())
-
-	query := "SELECT * FROM posts"
-	rows, err := conn.Query(context.Background(), query)
-	check(err)
-	defer rows.Close()
 
 	isEmpty := true
 	for rows.Next() {
 		isEmpty = false
 
-		var postID, title, body string
-		err := rows.Scan(&postID, &title, &body)
+		var postID, title, body, createdAt, createdBy string
+		err := rows.Scan(&postID, &title, &body, &createdAt, &createdBy)
 		check(err)
 
 		_, err = fmt.Fprintf(w, "<a href=\"/posts/%v\">%v</a><br><br>", postID, title)

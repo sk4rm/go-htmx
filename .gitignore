@@ -1,5 +1,6 @@
 # Configs
 .air.toml
+.env
 
 # Content
 tmp/

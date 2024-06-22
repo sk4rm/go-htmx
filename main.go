@@ -1,29 +1,37 @@
 package main
 
 import (
-	"context"
+	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
-	"os"
 
-	"github.com/jackc/pgx/v5"
+	_ "github.com/mattn/go-sqlite3"
 )
 
+const (
+	DATABASE_URL string = "db.sqlite"
+	PORT         int    = 8080
+)
+
+var db *sql.DB
+
 func main() {
-	if os.Getenv("DATABASE_URL") == "" {
-		log.Fatalln("database url not provided")
+	if DATABASE_URL == "" {
+		log.Fatal("database url not provided")
 	}
 
-	// Test database connection.
-	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	var err error
+	db, err = sql.Open("sqlite3", "db.sqlite")
 	check(err)
-	defer conn.Close(context.Background())
+	log.Printf("Established connection to %v", DATABASE_URL)
+	defer db.Close()
 
-	// https://go.dev/blog/routing-enhancements
+	// Routes
 	http.HandleFunc("GET /posts/{id}", viewPostHandler)
 	http.HandleFunc("GET /posts/new/", newPostHandler)
 	http.HandleFunc("GET /posts/", viewAllPostsHandler)
 	http.HandleFunc("POST /posts/", postHandler)
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", PORT), nil))
 }
